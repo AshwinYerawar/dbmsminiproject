@@ -1,0 +1,33 @@
+create database hospital;
+use hospital;
+
+CREATE TABLE patients (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    first_name VARCHAR(50) NOT NULL,
+    last_name VARCHAR(50) NOT NULL,
+    age INT NOT NULL,
+    gender VARCHAR(10) NOT NULL,
+    admission_date DATE DEFAULT CURRENT_DATE,
+    address VARCHAR(255),
+    phone VARCHAR(15),
+    disease VARCHAR(255),
+    past_diagnosed_diseases VARCHAR(255)
+);
+
+CREATE TABLE rehab_sessions (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    patient_id INT NOT NULL,
+    session_date DATE DEFAULT CURRENT_DATE,
+    session_notes VARCHAR(255),
+    FOREIGN KEY (patient_id) REFERENCES patients(id)
+);
+
+CREATE TABLE rehabilitation (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    patient_id INT NOT NULL,
+    start_date DATE DEFAULT CURRENT_DATE,
+    end_date DATE,
+    therapy_type VARCHAR(50),
+    therapy_notes VARCHAR(255),
+    FOREIGN KEY (patient_id) REFERENCES patients(id)
+);
