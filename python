@@ -1,0 +1,324 @@
+import tkinter as tk
+from tkinter import ttk, messagebox
+from sqlalchemy import create_engine, Column, Integer, String, Date
+from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.orm import sessionmaker
+from datetime import datetime
+
+# Create MySQL database engine (adjust connection details accordingly)
+DB_USER = 'root'
+DB_PASSWORD = '12345678'
+DB_HOST = 'localhost'
+DB_PORT = '3306'
+DB_NAME = 'hospital'
+
+engine = create_engine(f'mysql+pymysql://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}', echo=True, pool_pre_ping=True)
+
+Base = declarative_base()
+
+class Patient(Base):
+    __tablename__ = 'patients'
+
+    id = Column(Integer, primary_key=True)
+    first_name = Column(String(50), nullable=False)
+    last_name = Column(String(50), nullable=False)
+    age = Column(Integer, nullable=False)
+    gender = Column(String(10), nullable=False)
+    admission_date = Column(Date, default=datetime.now().date())
+    address = Column(String(255))
+    phone = Column(String(15))
+    disease = Column(String(255))
+    past_diagnosed_diseases = Column(String(255))
+
+class RehabSession(Base):
+    __tablename__ = 'rehab_sessions'
+
+    id = Column(Integer, primary_key=True)
+    patient_id = Column(Integer, nullable=False)
+    session_date = Column(Date, default=datetime.now().date())
+    session_notes = Column(String(255))
+
+class Rehabilitation(Base):
+    __tablename__ = 'rehabilitation'
+
+    id = Column(Integer, primary_key=True)
+    patient_id = Column(Integer, nullable=False)
+    start_date = Column(Date, default=datetime.now().date())
+    end_date = Column(Date)
+    therapy_type = Column(String(50))
+    therapy_notes = Column(String(255))
+
+Base.metadata.create_all(engine)
+
+Session = sessionmaker(bind=engine)
+
+def add_patient(patient_data):
+    session = Session()
+    patient = Patient(**patient_data)
+    session.add(patient)
+    session.commit()
+    session.close()
+
+def get_all_patients():
+    session = Session()
+    patients = session.query(Patient).all()
+    session.close()
+    return patients
+
+def add_rehab_session(session_data):
+    session = Session()
+    rehab_session = RehabSession(**session_data)
+    session.add(rehab_session)
+    session.commit()
+    session.close()
+
+def add_rehabilitation(rehab_data):
+    session = Session()
+    rehabilitation = Rehabilitation(**rehab_data)
+    session.add(rehabilitation)
+    session.commit()
+    session.close()
+
+def get_all_rehab_sessions():
+    session = Session()
+    sessions = session.query(RehabSession).all()
+    session.close()
+    return sessions
+
+def get_all_rehabilitation_data():
+    session = Session()
+    rehab_data = session.query(Rehabilitation).all()
+    session.close()
+    return rehab_data
+
+
+class HospitalManagementApp:
+    def __init__(self, root):
+        self.root = root
+        self.root.title("Hospital Management System")
+
+        self.create_widgets()
+
+    def create_widgets(self):
+        self.main_frame = ttk.Frame(self.root, padding="20")
+        self.main_frame.pack()
+
+        ttk.Label(self.main_frame, text="Hospital Management System", font=("Helvetica", 16, "bold")).pack(pady=10)
+
+        # Menu Options
+        ttk.Button(self.main_frame, text="1. Get Input", command=self.get_input).pack(pady=5)
+        ttk.Button(self.main_frame, text="2. Show Recorded Data", command=self.show_recorded_data).pack(pady=5)
+        ttk.Button(self.main_frame, text="3. Display Admitted Patients", command=self.display_admitted_patients).pack(pady=5)
+        ttk.Button(self.main_frame, text="4. View Rehab Sessions", command=self.view_rehab_sessions).pack(pady=5)
+        ttk.Button(self.main_frame, text="5. View Rehabilitation Data", command=self.view_rehabilitation_data).pack(pady=5)
+        ttk.Button(self.main_frame, text="6. Add Rehabilitation Data", command=self.add_rehabilitation_data_gui).pack(pady=5)
+        ttk.Button(self.main_frame, text="7. Add Rehab Session", command=self.add_rehab_session_gui).pack(pady=5)
+        ttk.Button(self.main_frame, text="8. Exit", command=self.root.quit).pack(pady=5)
+
+    def get_input(self):
+        self.clear_frame()
+        self.create_patient_form()
+
+    def show_recorded_data(self):
+        self.clear_frame()
+        self.display_patients()
+    
+    def add_rehabilitation_data_gui(self):
+        self.clear_frame()
+        self.create_rehabilitation_form()
+
+    def add_rehab_session_gui(self):
+        self.clear_frame()
+        self.create_rehab_session_form()
+
+    def display_admitted_patients(self):
+        self.clear_frame()
+        admitted_patients = [patient for patient in get_all_patients() if patient.admission_date]
+        self.display_patients(admitted_patients)
+
+    def view_rehab_sessions(self):
+        self.clear_frame()
+        rehab_sessions = get_all_rehab_sessions()
+        self.display_rehab_sessions(rehab_sessions)
+
+    def view_rehabilitation_data(self):
+        self.clear_frame()
+        rehab_data = get_all_rehabilitation_data()
+        self.display_rehabilitation_data(rehab_data)
+    
+    def create_rehabilitation_form(self):
+        self.rehab_form_frame = ttk.LabelFrame(self.main_frame, text="Enter Rehabilitation Information")
+        self.rehab_form_frame.pack(padx=20, pady=10)
+
+        self.rehab_labels = ["Patient ID:", "Start Date (YYYY-MM-DD):", "End Date (YYYY-MM-DD):", "Therapy Type:", "Therapy Notes:"]
+        self.rehab_entries = []
+
+        for label_text in self.rehab_labels:
+            label = ttk.Label(self.rehab_form_frame, text=label_text)
+            label.pack(pady=5)
+            entry = ttk.Entry(self.rehab_form_frame, width=50)
+            entry.pack(pady=5)
+            self.rehab_entries.append(entry)
+
+        ttk.Button(self.rehab_form_frame, text="Add Rehabilitation Data", command=self.add_rehabilitation_data).pack(pady=10)
+
+    def create_patient_form(self):
+        self.patient_form_frame = ttk.LabelFrame(self.main_frame, text="Enter Patient Information")
+        self.patient_form_frame.pack(padx=20, pady=10)
+
+        self.labels = ["First Name:", "Last Name:", "Age:", "Gender:", "Address:", "Phone:", "Current Disease:", "Past Diagnosed Diseases:"]
+        self.entries = []
+
+        for label_text in self.labels:
+            label = ttk.Label(self.patient_form_frame, text=label_text)
+            label.pack(pady=5)
+            entry = ttk.Entry(self.patient_form_frame, width=50)
+            entry.pack(pady=5)
+            self.entries.append(entry)
+
+        ttk.Button(self.patient_form_frame, text="Add Patient", command=self.add_patient).pack(pady=10)
+    
+    def create_rehab_session_form(self):
+        self.rehab_session_form_frame = ttk.LabelFrame(self.main_frame, text="Enter Rehab Session Information")
+        self.rehab_session_form_frame.pack(padx=20, pady=10)
+
+        self.rehab_session_labels = ["Patient ID:", "Session Date (YYYY-MM-DD):", "Session Notes:"]
+        self.rehab_session_entries = []
+
+        for label_text in self.rehab_session_labels:
+            label = ttk.Label(self.rehab_session_form_frame, text=label_text)
+            label.pack(pady=5)
+            entry = ttk.Entry(self.rehab_session_form_frame, width=50)
+            entry.pack(pady=5)
+            self.rehab_session_entries.append(entry)
+
+        ttk.Button(self.rehab_session_form_frame, text="Add Rehab Session", command=self.add_rehab_session_data).pack(pady=10)
+
+    def add_rehab_session_data(self):
+        session_data = {
+            "patient_id": int(self.rehab_session_entries[0].get().strip()),
+            "session_date": datetime.strptime(self.rehab_session_entries[1].get().strip(), "%Y-%m-%d").date(),
+            "session_notes": self.rehab_session_entries[2].get().strip()
+        }
+
+        add_rehab_session(session_data)
+        messagebox.showinfo("Success", "Rehab session added successfully.")
+        self.clear_frame()
+
+    def add_rehabilitation_data(self):
+        try:
+            rehab_data = {
+                "patient_id": int(self.rehab_entries[0].get().strip()),
+                "start_date": datetime.strptime(self.rehab_entries[1].get().strip(), "%Y-%m-%d").date(),
+                "end_date": datetime.strptime(self.rehab_entries[2].get().strip(), "%Y-%m-%d").date() if self.rehab_entries[2].get().strip() else None,
+                "therapy_type": self.rehab_entries[3].get().strip(),
+                "therapy_notes": self.rehab_entries[4].get().strip()
+            }
+
+            add_rehabilitation(rehab_data)
+            messagebox.showinfo("Success", "Rehabilitation data added successfully.")
+            self.clear_frame()
+
+        except ValueError as e:
+            messagebox.showerror("Error", f"Error adding rehabilitation data: {str(e)}")
+
+
+    def add_patient(self):
+        patient_data = {
+            "first_name": self.entries[0].get().strip(),
+            "last_name": self.entries[1].get().strip(),
+            "age": int(self.entries[2].get().strip()) if self.entries[2].get().strip().isdigit() else 0,
+            "gender": self.entries[3].get().strip(),
+            "address": self.entries[4].get().strip(),
+            "phone": self.entries[5].get().strip(),
+            "disease": self.entries[6].get().strip(),
+            "past_diagnosed_diseases": self.entries[7].get().strip()
+        }
+
+        add_patient(patient_data)
+        messagebox.showinfo("Success", "Patient added successfully.")
+        self.clear_frame()
+
+    def display_patients(self, patients=None):
+        if not patients:
+            patients = get_all_patients()
+
+        self.patient_records_frame = ttk.LabelFrame(self.main_frame, text="Patient Records")
+        self.patient_records_frame.pack(padx=20, pady=10)
+
+        columns = ["ID", "Name", "Age", "Gender", "Address", "Phone", "Disease", "Past Diagnosed Diseases"]
+        tree = ttk.Treeview(self.patient_records_frame, columns=columns, show="headings")
+        for col in columns:
+            tree.heading(col, text=col)
+
+        for patient in patients:
+            tree.insert("", "end", values=(
+                patient.id,
+                f"{patient.first_name} {patient.last_name}",
+                patient.age,
+                patient.gender,
+                patient.address,
+                patient.phone,
+                patient.disease,
+                patient.past_diagnosed_diseases
+            ))
+
+        tree.pack(pady=10)
+
+    def display_rehab_sessions(self, sessions=None):
+        if not sessions:
+            sessions = get_all_rehab_sessions()
+
+        self.rehab_sessions_frame = ttk.LabelFrame(self.main_frame, text="Rehab Sessions")
+        self.rehab_sessions_frame.pack(padx=20, pady=10)
+
+        columns = ["ID", "Patient ID", "Session Date", "Session Notes"]
+        tree = ttk.Treeview(self.rehab_sessions_frame, columns=columns, show="headings")
+        for col in columns:
+            tree.heading(col, text=col)
+
+        for session in sessions:
+            tree.insert("", "end", values=(
+                session.id,
+                session.patient_id,
+                session.session_date,
+                session.session_notes
+            ))
+
+        tree.pack(pady=10)
+
+    def display_rehabilitation_data(self, rehab_data=None):
+        if not rehab_data:
+            rehab_data = get_all_rehabilitation_data()
+
+        self.rehabilitation_data_frame = ttk.LabelFrame(self.main_frame, text="Rehabilitation Data")
+        self.rehabilitation_data_frame.pack(padx=20, pady=10)
+
+        columns = ["ID", "Patient ID", "Start Date", "End Date", "Therapy Type", "Therapy Notes"]
+        tree = ttk.Treeview(self.rehabilitation_data_frame, columns=columns, show="headings")
+        for col in columns:
+            tree.heading(col, text=col)
+
+        for rehab in rehab_data:
+            tree.insert("", "end", values=(
+                rehab.id,
+                rehab.patient_id,
+                rehab.start_date,
+                rehab.end_date,
+                rehab.therapy_type,
+                rehab.therapy_notes
+            ))
+
+        tree.pack(pady=10)
+
+    def clear_frame(self):
+        for widget in self.main_frame.winfo_children():
+            widget.destroy()
+
+def main():
+    root = tk.Tk()
+    app = HospitalManagementApp(root)
+    root.mainloop()
+
+if __name__ == "__main__":
+    main()
